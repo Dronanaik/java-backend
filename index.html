@@ -1,0 +1,1000 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Java Backend Projects Repository - A curated collection of Spring Boot applications demonstrating enterprise Java development patterns and best practices">
+    <meta name="keywords" content="Java, Spring Boot, Backend, REST API, JPA, Hibernate, MySQL">
+    <meta name="author" content="Drona L">
+    <title>Java Backend Projects | Spring Boot & Enterprise Development</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --primary-color: #f89820;
+            --secondary-color: #5382a1;
+            --accent-color: #1E90FF;
+            --dark-bg: #0a0e27;
+            --darker-bg: #060918;
+            --card-bg: rgba(15, 23, 42, 0.7);
+            --text-primary: #e2e8f0;
+            --text-secondary: #94a3b8;
+            --gradient-1: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            --gradient-2: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            --gradient-3: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+            --gradient-java: linear-gradient(135deg, #f89820 0%, #e76f00 100%);
+            --shadow-glow: 0 0 40px rgba(102, 126, 234, 0.3);
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: var(--dark-bg);
+            color: var(--text-primary);
+            line-height: 1.6;
+            overflow-x: hidden;
+        }
+
+        /* Animated Background */
+        .background-animation {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: -1;
+            background: var(--darker-bg);
+            overflow: hidden;
+        }
+
+        .background-animation::before {
+            content: '';
+            position: absolute;
+            width: 200%;
+            height: 200%;
+            background: radial-gradient(circle at 20% 50%, rgba(102, 126, 234, 0.1) 0%, transparent 50%),
+                        radial-gradient(circle at 80% 80%, rgba(248, 152, 32, 0.1) 0%, transparent 50%),
+                        radial-gradient(circle at 40% 20%, rgba(83, 130, 161, 0.1) 0%, transparent 50%);
+            animation: backgroundMove 20s ease-in-out infinite;
+        }
+
+        @keyframes backgroundMove {
+            0%, 100% { transform: translate(0, 0) rotate(0deg); }
+            50% { transform: translate(-50px, 50px) rotate(180deg); }
+        }
+
+        /* Floating particles */
+        .particle {
+            position: absolute;
+            background: rgba(102, 126, 234, 0.3);
+            border-radius: 50%;
+            animation: float 15s infinite ease-in-out;
+        }
+
+        @keyframes float {
+            0%, 100% { transform: translateY(0) translateX(0); opacity: 0.3; }
+            50% { transform: translateY(-100px) translateX(50px); opacity: 0.6; }
+        }
+
+        /* Header */
+        header {
+            padding: 2rem 5%;
+            position: sticky;
+            top: 0;
+            background: rgba(10, 14, 39, 0.8);
+            backdrop-filter: blur(20px);
+            border-bottom: 1px solid rgba(102, 126, 234, 0.2);
+            z-index: 1000;
+            animation: slideDown 0.5s ease-out;
+        }
+
+        @keyframes slideDown {
+            from { transform: translateY(-100%); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+
+        nav {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        .logo {
+            font-size: 1.8rem;
+            font-weight: 800;
+            background: var(--gradient-java);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .nav-links {
+            display: flex;
+            gap: 2rem;
+            list-style: none;
+        }
+
+        .nav-links a {
+            color: var(--text-secondary);
+            text-decoration: none;
+            font-weight: 500;
+            transition: all 0.3s ease;
+            position: relative;
+        }
+
+        .nav-links a::after {
+            content: '';
+            position: absolute;
+            bottom: -5px;
+            left: 0;
+            width: 0;
+            height: 2px;
+            background: var(--gradient-java);
+            transition: width 0.3s ease;
+        }
+
+        .nav-links a:hover {
+            color: var(--text-primary);
+        }
+
+        .nav-links a:hover::after {
+            width: 100%;
+        }
+
+        /* Hero Section */
+        .hero {
+            padding: 8rem 5% 6rem;
+            text-align: center;
+            max-width: 1400px;
+            margin: 0 auto;
+            animation: fadeInUp 0.8s ease-out;
+        }
+
+        @keyframes fadeInUp {
+            from { opacity: 0; transform: translateY(30px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .hero-title {
+            font-size: clamp(2.5rem, 6vw, 5rem);
+            font-weight: 900;
+            margin-bottom: 1.5rem;
+            background: linear-gradient(135deg, #f89820 0%, #667eea 50%, #4facfe 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            line-height: 1.2;
+        }
+
+        .hero-subtitle {
+            font-size: clamp(1.1rem, 2vw, 1.5rem);
+            color: var(--text-secondary);
+            margin-bottom: 3rem;
+            max-width: 800px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        .badges {
+            display: flex;
+            gap: 1rem;
+            justify-content: center;
+            flex-wrap: wrap;
+            margin-bottom: 3rem;
+        }
+
+        .badge {
+            padding: 0.5rem 1.2rem;
+            background: rgba(102, 126, 234, 0.1);
+            border: 1px solid rgba(102, 126, 234, 0.3);
+            border-radius: 50px;
+            font-size: 0.9rem;
+            font-weight: 600;
+            color: var(--text-primary);
+            transition: all 0.3s ease;
+            cursor: default;
+        }
+
+        .badge:hover {
+            background: rgba(102, 126, 234, 0.2);
+            transform: translateY(-2px);
+            box-shadow: 0 10px 30px rgba(102, 126, 234, 0.2);
+        }
+
+        .cta-buttons {
+            display: flex;
+            gap: 1.5rem;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        .btn {
+            padding: 1rem 2.5rem;
+            border-radius: 12px;
+            font-weight: 600;
+            font-size: 1rem;
+            text-decoration: none;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+            cursor: pointer;
+            border: none;
+        }
+
+        .btn-primary {
+            background: var(--gradient-java);
+            color: white;
+            box-shadow: 0 10px 30px rgba(248, 152, 32, 0.3);
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 15px 40px rgba(248, 152, 32, 0.5);
+        }
+
+        .btn-secondary {
+            background: transparent;
+            color: var(--text-primary);
+            border: 2px solid rgba(102, 126, 234, 0.5);
+        }
+
+        .btn-secondary:hover {
+            background: rgba(102, 126, 234, 0.1);
+            border-color: rgba(102, 126, 234, 0.8);
+            transform: translateY(-3px);
+        }
+
+        /* Features Section */
+        .features {
+            padding: 6rem 5%;
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        .section-title {
+            font-size: clamp(2rem, 4vw, 3rem);
+            font-weight: 800;
+            text-align: center;
+            margin-bottom: 1rem;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .section-subtitle {
+            text-align: center;
+            color: var(--text-secondary);
+            margin-bottom: 4rem;
+            font-size: 1.1rem;
+        }
+
+        .features-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 2rem;
+            margin-bottom: 4rem;
+        }
+
+        .feature-card {
+            background: var(--card-bg);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(102, 126, 234, 0.2);
+            border-radius: 20px;
+            padding: 2.5rem;
+            transition: all 0.4s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .feature-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: var(--gradient-1);
+            opacity: 0;
+            transition: opacity 0.4s ease;
+        }
+
+        .feature-card:hover::before {
+            opacity: 0.05;
+        }
+
+        .feature-card:hover {
+            transform: translateY(-10px);
+            box-shadow: var(--shadow-glow);
+            border-color: rgba(102, 126, 234, 0.5);
+        }
+
+        .feature-icon {
+            font-size: 3rem;
+            margin-bottom: 1.5rem;
+            display: block;
+            position: relative;
+            z-index: 1;
+        }
+
+        .feature-title {
+            font-size: 1.5rem;
+            font-weight: 700;
+            margin-bottom: 1rem;
+            color: var(--text-primary);
+            position: relative;
+            z-index: 1;
+        }
+
+        .feature-description {
+            color: var(--text-secondary);
+            line-height: 1.8;
+            position: relative;
+            z-index: 1;
+        }
+
+        /* Projects Section */
+        .projects {
+            padding: 6rem 5%;
+            background: rgba(6, 9, 24, 0.5);
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        .project-card {
+            background: var(--card-bg);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(102, 126, 234, 0.2);
+            border-radius: 24px;
+            padding: 3rem;
+            margin-bottom: 3rem;
+            transition: all 0.4s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .project-card::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            right: -50%;
+            width: 200%;
+            height: 200%;
+            background: radial-gradient(circle, rgba(248, 152, 32, 0.1) 0%, transparent 70%);
+            opacity: 0;
+            transition: opacity 0.4s ease;
+        }
+
+        .project-card:hover::before {
+            opacity: 1;
+        }
+
+        .project-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 20px 60px rgba(102, 126, 234, 0.3);
+            border-color: rgba(248, 152, 32, 0.5);
+        }
+
+        .project-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: start;
+            margin-bottom: 2rem;
+            flex-wrap: wrap;
+            gap: 1rem;
+            position: relative;
+            z-index: 1;
+        }
+
+        .project-title {
+            font-size: 2rem;
+            font-weight: 800;
+            background: var(--gradient-java);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .project-badges {
+            display: flex;
+            gap: 0.5rem;
+            flex-wrap: wrap;
+        }
+
+        .project-description {
+            color: var(--text-secondary);
+            margin-bottom: 2rem;
+            font-size: 1.1rem;
+            line-height: 1.8;
+            position: relative;
+            z-index: 1;
+        }
+
+        .project-features {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 1rem;
+            margin-bottom: 2rem;
+            position: relative;
+            z-index: 1;
+        }
+
+        .project-feature-item {
+            display: flex;
+            align-items: center;
+            gap: 0.8rem;
+            color: var(--text-secondary);
+            padding: 0.8rem;
+            background: rgba(102, 126, 234, 0.05);
+            border-radius: 10px;
+            transition: all 0.3s ease;
+        }
+
+        .project-feature-item:hover {
+            background: rgba(102, 126, 234, 0.1);
+            transform: translateX(5px);
+        }
+
+        .checkmark {
+            color: #10b981;
+            font-weight: bold;
+            font-size: 1.2rem;
+        }
+
+        .tech-stack {
+            display: flex;
+            gap: 1rem;
+            flex-wrap: wrap;
+            margin-bottom: 2rem;
+            position: relative;
+            z-index: 1;
+        }
+
+        .tech-tag {
+            padding: 0.6rem 1.2rem;
+            background: rgba(248, 152, 32, 0.1);
+            border: 1px solid rgba(248, 152, 32, 0.3);
+            border-radius: 8px;
+            font-size: 0.9rem;
+            font-family: 'JetBrains Mono', monospace;
+            color: var(--primary-color);
+            transition: all 0.3s ease;
+        }
+
+        .tech-tag:hover {
+            background: rgba(248, 152, 32, 0.2);
+            transform: scale(1.05);
+        }
+
+        /* Tech Stack Table */
+        .tech-table {
+            width: 100%;
+            margin: 3rem 0;
+            border-collapse: separate;
+            border-spacing: 0;
+            overflow: hidden;
+            border-radius: 16px;
+            background: var(--card-bg);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(102, 126, 234, 0.2);
+        }
+
+        .tech-table th,
+        .tech-table td {
+            padding: 1.5rem;
+            text-align: left;
+            border-bottom: 1px solid rgba(102, 126, 234, 0.1);
+        }
+
+        .tech-table th {
+            background: rgba(102, 126, 234, 0.1);
+            font-weight: 700;
+            color: var(--text-primary);
+            font-size: 1.1rem;
+        }
+
+        .tech-table td {
+            color: var(--text-secondary);
+        }
+
+        .tech-table tr:last-child td {
+            border-bottom: none;
+        }
+
+        .tech-table tr:hover {
+            background: rgba(102, 126, 234, 0.05);
+        }
+
+        /* Getting Started Section */
+        .getting-started {
+            padding: 6rem 5%;
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        .steps-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 2rem;
+        }
+
+        .step-card {
+            background: var(--card-bg);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(102, 126, 234, 0.2);
+            border-radius: 20px;
+            padding: 2.5rem;
+            position: relative;
+            transition: all 0.4s ease;
+        }
+
+        .step-card:hover {
+            transform: translateY(-5px);
+            box-shadow: var(--shadow-glow);
+        }
+
+        .step-number {
+            position: absolute;
+            top: -20px;
+            left: 2rem;
+            width: 50px;
+            height: 50px;
+            background: var(--gradient-java);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+            font-weight: 800;
+            color: white;
+            box-shadow: 0 10px 30px rgba(248, 152, 32, 0.4);
+        }
+
+        .step-title {
+            font-size: 1.5rem;
+            font-weight: 700;
+            margin-bottom: 1rem;
+            margin-top: 1rem;
+        }
+
+        .code-block {
+            background: rgba(6, 9, 24, 0.8);
+            border: 1px solid rgba(102, 126, 234, 0.2);
+            border-radius: 12px;
+            padding: 1.5rem;
+            margin: 1rem 0;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.9rem;
+            overflow-x: auto;
+            position: relative;
+        }
+
+        .code-block code {
+            color: #4facfe;
+        }
+
+        /* Footer */
+        footer {
+            padding: 4rem 5% 2rem;
+            background: rgba(6, 9, 24, 0.8);
+            border-top: 1px solid rgba(102, 126, 234, 0.2);
+        }
+
+        .footer-content {
+            max-width: 1400px;
+            margin: 0 auto;
+            text-align: center;
+        }
+
+        .social-links {
+            display: flex;
+            gap: 1.5rem;
+            justify-content: center;
+            margin-bottom: 2rem;
+            flex-wrap: wrap;
+        }
+
+        .social-link {
+            padding: 0.8rem 1.5rem;
+            background: rgba(102, 126, 234, 0.1);
+            border: 1px solid rgba(102, 126, 234, 0.3);
+            border-radius: 12px;
+            color: var(--text-primary);
+            text-decoration: none;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .social-link:hover {
+            background: rgba(102, 126, 234, 0.2);
+            transform: translateY(-3px);
+            box-shadow: 0 10px 30px rgba(102, 126, 234, 0.3);
+        }
+
+        .footer-text {
+            color: var(--text-secondary);
+            margin-top: 2rem;
+        }
+
+        /* Responsive Design */
+        @media (max-width: 768px) {
+            .nav-links {
+                gap: 1rem;
+                font-size: 0.9rem;
+            }
+
+            .hero {
+                padding: 4rem 5% 3rem;
+            }
+
+            .features-grid,
+            .steps-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .project-header {
+                flex-direction: column;
+            }
+
+            .cta-buttons {
+                flex-direction: column;
+                width: 100%;
+            }
+
+            .btn {
+                width: 100%;
+                text-align: center;
+            }
+        }
+
+        /* Scroll animations */
+        .fade-in {
+            opacity: 0;
+            transform: translateY(30px);
+            transition: all 0.6s ease;
+        }
+
+        .fade-in.visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    </style>
+</head>
+<body>
+    <!-- Animated Background -->
+    <div class="background-animation">
+        <div class="particle" style="width: 4px; height: 4px; top: 20%; left: 10%; animation-delay: 0s;"></div>
+        <div class="particle" style="width: 6px; height: 6px; top: 60%; left: 80%; animation-delay: 2s;"></div>
+        <div class="particle" style="width: 3px; height: 3px; top: 40%; left: 50%; animation-delay: 4s;"></div>
+        <div class="particle" style="width: 5px; height: 5px; top: 80%; left: 30%; animation-delay: 1s;"></div>
+        <div class="particle" style="width: 4px; height: 4px; top: 10%; left: 70%; animation-delay: 3s;"></div>
+    </div>
+
+    <!-- Header -->
+    <header>
+        <nav>
+            <div class="logo">☕ Java Backend</div>
+            <ul class="nav-links">
+                <li><a href="#overview">Overview</a></li>
+                <li><a href="#projects">Projects</a></li>
+                <li><a href="#tech-stack">Tech Stack</a></li>
+                <li><a href="#getting-started">Get Started</a></li>
+                <li><a href="#contact">Connect</a></li>
+            </ul>
+        </nav>
+    </header>
+
+    <!-- Hero Section -->
+    <section class="hero">
+        <h1 class="hero-title">Java Backend Projects</h1>
+        <p class="hero-subtitle">A curated collection of Spring Boot applications demonstrating enterprise Java development patterns, RESTful APIs, and modern backend best practices</p>
+        
+        <div class="badges">
+            <span class="badge">☕ Java 21</span>
+            <span class="badge">🍃 Spring Boot 4.0.1</span>
+            <span class="badge">🗄️ MySQL 8.0+</span>
+            <span class="badge">📦 Maven</span>
+            <span class="badge">📜 MIT License</span>
+        </div>
+
+        <div class="cta-buttons">
+            <a href="https://github.com/Dronanaik/java-backend" class="btn btn-primary" target="_blank">View on GitHub</a>
+            <a href="#getting-started" class="btn btn-secondary">Get Started</a>
+        </div>
+    </section>
+
+    <!-- Features Section -->
+    <section id="overview" class="features">
+        <h2 class="section-title">What You'll Learn</h2>
+        <p class="section-subtitle">Comprehensive examples covering essential backend development concepts</p>
+        
+        <div class="features-grid">
+            <div class="feature-card fade-in">
+                <span class="feature-icon">🚀</span>
+                <h3 class="feature-title">Spring Boot Development</h3>
+                <p class="feature-description">Build production-ready applications with Spring Boot, leveraging auto-configuration and embedded servers for rapid development.</p>
+            </div>
+
+            <div class="feature-card fade-in">
+                <span class="feature-icon">🗃️</span>
+                <h3 class="feature-title">JPA & Hibernate ORM</h3>
+                <p class="feature-description">Master entity relationships, cascade operations, and database interactions using Spring Data JPA and Hibernate.</p>
+            </div>
+
+            <div class="feature-card fade-in">
+                <span class="feature-icon">🌐</span>
+                <h3 class="feature-title">RESTful API Design</h3>
+                <p class="feature-description">Implement clean, scalable REST APIs following industry best practices with proper HTTP methods and status codes.</p>
+            </div>
+
+            <div class="feature-card fade-in">
+                <span class="feature-icon">🏗️</span>
+                <h3 class="feature-title">Service Layer Patterns</h3>
+                <p class="feature-description">Apply enterprise design patterns with interface-based service layers for maintainable and testable code.</p>
+            </div>
+
+            <div class="feature-card fade-in">
+                <span class="feature-icon">💾</span>
+                <h3 class="feature-title">Database Integration</h3>
+                <p class="feature-description">Connect to MySQL and PostgreSQL databases with automatic schema generation and migration support.</p>
+            </div>
+
+            <div class="feature-card fade-in">
+                <span class="feature-icon">✅</span>
+                <h3 class="feature-title">Best Practices</h3>
+                <p class="feature-description">Learn industry-standard coding practices, error handling, validation, and project structure organization.</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- Projects Section -->
+    <section id="projects" class="projects">
+        <h2 class="section-title">Featured Projects</h2>
+        <p class="section-subtitle">Explore real-world applications demonstrating backend concepts</p>
+
+        <div class="project-card fade-in">
+            <div class="project-header">
+                <h3 class="project-title">1️⃣ Entity Mapping</h3>
+                <div class="project-badges">
+                    <span class="badge">Java 21</span>
+                    <span class="badge">Spring Boot 4.0.1</span>
+                    <span class="badge">MySQL</span>
+                </div>
+            </div>
+
+            <p class="project-description">
+                A comprehensive Spring Boot application demonstrating JPA entity relationships and RESTful API design. 
+                This project showcases complete CRUD operations across multiple related entities with proper cascade handling.
+            </p>
+
+            <div class="project-features">
+                <div class="project-feature-item">
+                    <span class="checkmark">✓</span>
+                    <span>Complete CRUD operations</span>
+                </div>
+                <div class="project-feature-item">
+                    <span class="checkmark">✓</span>
+                    <span>JPA entity relationships</span>
+                </div>
+                <div class="project-feature-item">
+                    <span class="checkmark">✓</span>
+                    <span>RESTful API endpoints</span>
+                </div>
+                <div class="project-feature-item">
+                    <span class="checkmark">✓</span>
+                    <span>Service layer patterns</span>
+                </div>
+                <div class="project-feature-item">
+                    <span class="checkmark">✓</span>
+                    <span>MySQL integration</span>
+                </div>
+                <div class="project-feature-item">
+                    <span class="checkmark">✓</span>
+                    <span>Cascade operations</span>
+                </div>
+            </div>
+
+            <h4 style="margin-bottom: 1rem; color: var(--text-primary); position: relative; z-index: 1;">Entities Covered:</h4>
+            <div class="tech-stack">
+                <span class="tech-tag">Customer</span>
+                <span class="tech-tag">Contact</span>
+                <span class="tech-tag">Deal</span>
+                <span class="tech-tag">Lead</span>
+                <span class="tech-tag">Note</span>
+                <span class="tech-tag">Company</span>
+            </div>
+
+            <a href="./EntityMapping/README.md" class="btn btn-primary" style="position: relative; z-index: 1; display: inline-block;">View Documentation</a>
+        </div>
+    </section>
+
+    <!-- Tech Stack Section -->
+    <section id="tech-stack" class="features">
+        <h2 class="section-title">Technology Stack</h2>
+        <p class="section-subtitle">Modern Java backend technologies powering these projects</p>
+
+        <table class="tech-table fade-in">
+            <thead>
+                <tr>
+                    <th>Technology</th>
+                    <th>Purpose</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td><strong>Java 21</strong></td>
+                    <td>Programming Language</td>
+                </tr>
+                <tr>
+                    <td><strong>Spring Boot</strong></td>
+                    <td>Application Framework</td>
+                </tr>
+                <tr>
+                    <td><strong>Spring Data JPA</strong></td>
+                    <td>Data Access Layer</td>
+                </tr>
+                <tr>
+                    <td><strong>Hibernate</strong></td>
+                    <td>ORM Framework</td>
+                </tr>
+                <tr>
+                    <td><strong>MySQL / PostgreSQL</strong></td>
+                    <td>Relational Databases</td>
+                </tr>
+                <tr>
+                    <td><strong>Maven</strong></td>
+                    <td>Build & Dependency Management</td>
+                </tr>
+                <tr>
+                    <td><strong>Spring Boot DevTools</strong></td>
+                    <td>Development Utilities</td>
+                </tr>
+                <tr>
+                    <td><strong>JUnit & Mockito</strong></td>
+                    <td>Testing Frameworks</td>
+                </tr>
+            </tbody>
+        </table>
+    </section>
+
+    <!-- Getting Started Section -->
+    <section id="getting-started" class="getting-started">
+        <h2 class="section-title">Getting Started</h2>
+        <p class="section-subtitle">Follow these steps to run the projects locally</p>
+
+        <div class="steps-grid">
+            <div class="step-card fade-in">
+                <div class="step-number">1</div>
+                <h3 class="step-title">Clone Repository</h3>
+                <p style="color: var(--text-secondary); margin-bottom: 1rem;">Get the source code from GitHub</p>
+                <div class="code-block">
+                    <code>git clone https://github.com/Dronanaik/Java_Backend.git<br>cd Java_Backend</code>
+                </div>
+            </div>
+
+            <div class="step-card fade-in">
+                <div class="step-number">2</div>
+                <h3 class="step-title">Setup Database</h3>
+                <p style="color: var(--text-secondary); margin-bottom: 1rem;">Create a MySQL database</p>
+                <div class="code-block">
+                    <code>CREATE DATABASE project_name;</code>
+                </div>
+            </div>
+
+            <div class="step-card fade-in">
+                <div class="step-number">3</div>
+                <h3 class="step-title">Configure Properties</h3>
+                <p style="color: var(--text-secondary); margin-bottom: 1rem;">Update application.properties</p>
+                <div class="code-block">
+                    <code>spring.datasource.url=jdbc:mysql://localhost:3306/db_name<br>spring.datasource.username=your_username<br>spring.datasource.password=your_password</code>
+                </div>
+            </div>
+
+            <div class="step-card fade-in">
+                <div class="step-number">4</div>
+                <h3 class="step-title">Build & Run</h3>
+                <p style="color: var(--text-secondary); margin-bottom: 1rem;">Start the application</p>
+                <div class="code-block">
+                    <code>mvn clean install<br>mvn spring-boot:run</code>
+                </div>
+            </div>
+        </div>
+
+        <div style="text-align: center; margin-top: 3rem;">
+            <p style="color: var(--text-secondary); font-size: 1.1rem;">
+                📚 For detailed project-specific instructions, refer to individual README files
+            </p>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer id="contact">
+        <div class="footer-content">
+            <h2 class="section-title" style="margin-bottom: 2rem;">Connect With Me</h2>
+            
+            <div class="social-links">
+                <a href="https://github.com/Dronanaik" class="social-link" target="_blank">
+                    <span>🐙</span> GitHub
+                </a>
+                <a href="https://www.linkedin.com/in/drona-l/" class="social-link" target="_blank">
+                    <span>💼</span> LinkedIn
+                </a>
+                <a href="https://x.com/drona_l" class="social-link" target="_blank">
+                    <span>🐦</span> Twitter
+                </a>
+                <a href="https://www.instagram.com/spotter_naik/" class="social-link" target="_blank">
+                    <span>📸</span> Instagram
+                </a>
+            </div>
+
+            <div class="footer-text">
+                <p style="font-size: 1.2rem; margin-bottom: 1rem;">⭐ If you find these projects helpful, please consider giving them a star!</p>
+                <p>Made with ❤️ using Spring Boot & Java</p>
+                <p style="margin-top: 1rem; font-size: 0.9rem;">© 2025 Java Backend Projects | MIT License</p>
+            </div>
+        </div>
+    </footer>
+
+    <script>
+        // Intersection Observer for fade-in animations
+        const observerOptions = {
+            threshold: 0.1,
+            rootMargin: '0px 0px -50px 0px'
+        };
+
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    entry.target.classList.add('visible');
+                }
+            });
+        }, observerOptions);
+
+        document.querySelectorAll('.fade-in').forEach(el => {
+            observer.observe(el);
+        });
+
+        // Smooth scrolling for navigation links
+        document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+            anchor.addEventListener('click', function (e) {
+                e.preventDefault();
+                const target = document.querySelector(this.getAttribute('href'));
+                if (target) {
+                    target.scrollIntoView({
+                        behavior: 'smooth',
+                        block: 'start'
+                    });
+                }
+            });
+        });
+
+        // Add dynamic particle generation
+        const backgroundAnimation = document.querySelector('.background-animation');
+        for (let i = 0; i < 10; i++) {
+            const particle = document.createElement('div');
+            particle.className = 'particle';
+            particle.style.width = Math.random() * 5 + 2 + 'px';
+            particle.style.height = particle.style.width;
+            particle.style.top = Math.random() * 100 + '%';
+            particle.style.left = Math.random() * 100 + '%';
+            particle.style.animationDelay = Math.random() * 15 + 's';
+            backgroundAnimation.appendChild(particle);
+        }
+    </script>
+</body>
+</html>

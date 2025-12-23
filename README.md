@@ -38,13 +38,20 @@
 
 ## 📋 Table of Contents
 
-- [Overview](#-overview)
-- [Projects](#-projects)
-- [Getting Started](#-getting-started)
-- [Tech Stack](#-tech-stack)
-- [Contributing](#-contributing)
-- [License](#-license)
-- [Connect With Me](#-connect-with-me)
+- [☕ Java Backend Projects Repository](#-java-backend-projects-repository)
+  - [📋 Table of Contents](#-table-of-contents)
+  - [🎯 Overview](#-overview)
+  - [📂 Projects](#-projects)
+    - [1️⃣ Entity Mapping](#1️⃣-entity-mapping)
+  - [🛠️ Common Tech Stack](#️-common-tech-stack)
+  - [🚀 Getting Started](#-getting-started)
+    - [Prerequisites](#prerequisites)
+    - [Quick Start](#quick-start)
+    - [General Setup Pattern](#general-setup-pattern)
+  - [🤝 Contributing](#-contributing)
+  - [📄 License](#-license)
+  - [🌐 Connect With Me](#-connect-with-me)
+  - [📞 Contact \& Support](#-contact--support)
 
 ---
 
@@ -205,7 +212,7 @@ This project is licensed under the **MIT License** - see below for details:
 ```
 MIT License
 
-Copyright (c) 2024 Java Backend Projects
+Copyright (c) 2025 Java Backend Projects
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
