@@ -95,6 +95,34 @@ This repository serves as a practical reference for:
 
 ---
 
+### 2️⃣ [Inventory Management](./InventoryManagement)
+
+[![Java](https://img.shields.io/badge/Java-21-orange.svg)](https://www.oracle.com/java/)
+[![Spring Boot](https://img.shields.io/badge/Spring%20Boot-4.0.1-brightgreen.svg)](https://spring.io/projects/spring-boot)
+[![MySQL](https://img.shields.io/badge/MySQL-8.0+-blue.svg)](https://www.mysql.com/)
+
+**An enterprise-grade inventory management system with multi-warehouse support and advanced tracking**
+
+**Key Features:**
+- ✅ Multi-warehouse inventory tracking
+- ✅ Stock transfer between warehouses
+- ✅ Purchase order management
+- ✅ Supplier management with ratings
+- ✅ Sales order fulfillment
+- ✅ Batch and expiry tracking
+- ✅ Low stock alerts
+- ✅ Inventory valuation (FIFO/LIFO/Average)
+- ✅ Barcode/QR code support
+- ✅ Analytics and reporting
+
+**Entities:** Product, Warehouse, Stock, Supplier, Purchase, Sale, Transfer
+
+**Tech Stack:** Java 21, Spring Boot 4.0.1, Spring Data JPA, MySQL, Maven
+
+[📖 View Project Documentation](./InventoryManagement/README.md)
+
+---
+
 ## 🛠️ Common Tech Stack
 
 All projects in this repository utilize modern Java backend technologies:
