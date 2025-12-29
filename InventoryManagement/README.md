@@ -317,7 +317,428 @@ Warehouse (1) ──< (N) Transfer (to)
 
 ---
 
-## 📄 License
+## � Sequence Diagrams
+
+The following sequence diagrams illustrate the request flow through the application layers for various inventory management operations:
+
+### CRUD Operation Flow (Example: Create Product)
+
+```mermaid
+sequenceDiagram
+    participant Client
+    participant Controller as ProductController
+    participant Service as ProductService
+    participant Repository as ProductRepository
+    participant DB as MySQL Database
+
+    Client->>Controller: POST /api/products
+    Note over Client,Controller: Request Body: Product JSON<br/>(name, SKU, barcode, pricing)
+    
+    Controller->>Service: createProduct(product)
+    activate Service
+    
+    Service->>Repository: save(product)
+    activate Repository
+    
+    Repository->>DB: INSERT INTO products
+    activate DB
+    Note over DB: Auto-generate ID<br/>Set timestamps
+    DB-->>Repository: Product Entity (with ID)
+    deactivate DB
+    
+    Repository-->>Service: Product Entity
+    deactivate Repository
+    
+    Service-->>Controller: Product Entity
+    deactivate Service
+    
+    Controller-->>Client: 201 Created + Product JSON
+    Note over Controller,Client: Response: Created Product
+```
+
+### Stock Management Flow (Create/Update Stock)
+
+```mermaid
+sequenceDiagram
+    participant Client
+    participant StockController
+    participant StockService
+    participant StockRepo as StockRepository
+    participant ProductRepo as ProductRepository
+    participant WarehouseRepo as WarehouseRepository
+    participant DB as MySQL Database
+
+    Client->>StockController: POST /api/stocks
+    Note over Client: Stock with Product ID<br/>& Warehouse ID
+
+    StockController->>StockService: createStock(stock)
+    activate StockService
+
+    StockService->>ProductRepo: findById(productId)
+    activate ProductRepo
+    ProductRepo->>DB: SELECT * FROM products WHERE id=?
+    DB-->>ProductRepo: Product Entity
+    deactivate ProductRepo
+
+    StockService->>WarehouseRepo: findById(warehouseId)
+    activate WarehouseRepo
+    WarehouseRepo->>DB: SELECT * FROM warehouses WHERE id=?
+    DB-->>WarehouseRepo: Warehouse Entity
+    deactivate WarehouseRepo
+
+    StockService->>StockRepo: save(stock)
+    activate StockRepo
+    StockRepo->>DB: INSERT INTO stocks
+    Note over DB: Link Product & Warehouse<br/>Set batch, expiry dates
+    DB-->>StockRepo: Stock Entity
+    deactivate StockRepo
+
+    StockRepo-->>StockService: Stock Entity
+    deactivate StockService
+
+    StockService-->>StockController: Stock Entity
+    StockController-->>Client: 201 Created
+```
+
+### Purchase Order Flow (Complete Lifecycle)
+
+```mermaid
+sequenceDiagram
+    participant Client
+    participant PurchaseController
+    participant PurchaseService
+    participant PurchaseRepo as PurchaseRepository
+    participant StockService
+    participant DB as MySQL Database
+
+    rect rgb(200, 220, 250)
+        Note over Client,DB: 1. Create Purchase Order
+        Client->>PurchaseController: POST /api/purchases
+        Note over Client: PO with Supplier, Product,<br/>Quantity, Status: PENDING
+
+        PurchaseController->>PurchaseService: createPurchase(purchase)
+        activate PurchaseService
+        PurchaseService->>PurchaseRepo: save(purchase)
+        PurchaseRepo->>DB: INSERT INTO purchases
+        DB-->>PurchaseService: Purchase (PENDING)
+        deactivate PurchaseService
+        PurchaseService-->>Client: 201 Created
+    end
+
+    rect rgb(220, 250, 220)
+        Note over Client,DB: 2. Update Status to DELIVERED
+        Client->>PurchaseController: PUT /api/purchases/{id}
+        Note over Client: Update status: DELIVERED
+
+        PurchaseController->>PurchaseService: updatePurchase(id, updated)
+        activate PurchaseService
+        PurchaseService->>PurchaseRepo: save(updated)
+        PurchaseRepo->>DB: UPDATE purchases SET status='DELIVERED'
+        
+        Note over PurchaseService: Trigger Stock Update
+        PurchaseService->>StockService: updateStock(productId, warehouseId, +quantity)
+        activate StockService
+        StockService->>DB: UPDATE stocks SET quantity = quantity + ?
+        deactivate StockService
+        
+        DB-->>PurchaseService: Updated Purchase
+        deactivate PurchaseService
+        PurchaseService-->>Client: 200 OK
+    end
+```
+
+### Sale Order Processing Flow
+
+```mermaid
+sequenceDiagram
+    participant Client
+    participant SaleController
+    participant SaleService
+    participant SaleRepo as SaleRepository
+    participant StockService
+    participant StockRepo as StockRepository
+    participant DB as MySQL Database
+
+    Client->>SaleController: POST /api/sales
+    Note over Client: Sale Order with<br/>Product, Quantity, Customer
+
+    SaleController->>SaleService: createSale(sale)
+    activate SaleService
+
+    SaleService->>StockService: checkAvailability(productId, warehouseId, quantity)
+    activate StockService
+    StockService->>StockRepo: findByProductAndWarehouse(productId, warehouseId)
+    StockRepo->>DB: SELECT * FROM stocks WHERE...
+    DB-->>StockService: Stock Entity
+    
+    alt Stock Available
+        StockService-->>SaleService: true
+        deactivate StockService
+        
+        SaleService->>SaleRepo: save(sale)
+        SaleRepo->>DB: INSERT INTO sales
+        DB-->>SaleService: Sale Entity
+        
+        SaleService->>StockService: reduceStock(productId, warehouseId, quantity)
+        activate StockService
+        StockService->>DB: UPDATE stocks SET quantity = quantity - ?
+        deactivate StockService
+        
+        SaleService-->>SaleController: Sale Entity
+        SaleController-->>Client: 201 Created
+    else Insufficient Stock
+        StockService-->>SaleService: false (Insufficient Stock)
+        deactivate StockService
+        SaleService-->>SaleController: Error: Insufficient Stock
+        deactivate SaleService
+        SaleController-->>Client: 400 Bad Request
+    end
+```
+
+### Inter-Warehouse Transfer Flow
+
+```mermaid
+sequenceDiagram
+    participant Client
+    participant TransferController
+    participant TransferService
+    participant TransferRepo as TransferRepository
+    participant StockService
+    participant DB as MySQL Database
+
+    rect rgb(250, 240, 200)
+        Note over Client,DB: 1. Initiate Transfer
+        Client->>TransferController: POST /api/transfers
+        Note over Client: Transfer Request:<br/>From Warehouse A → B<br/>Product, Quantity
+
+        TransferController->>TransferService: createTransfer(transfer)
+        activate TransferService
+        
+        TransferService->>StockService: checkStock(productId, fromWarehouseId, quantity)
+        activate StockService
+        StockService->>DB: SELECT quantity FROM stocks
+        DB-->>StockService: Available Quantity
+        
+        alt Stock Available
+            StockService-->>TransferService: true
+            deactivate StockService
+            
+            TransferService->>TransferRepo: save(transfer)
+            TransferRepo->>DB: INSERT INTO transfers<br/>status='PENDING'
+            DB-->>TransferService: Transfer (PENDING)
+            deactivate TransferService
+            TransferService-->>Client: 201 Created
+        else Insufficient Stock
+            StockService-->>TransferService: false
+            deactivate StockService
+            deactivate TransferService
+            TransferService-->>Client: 400 Bad Request
+        end
+    end
+
+    rect rgb(250, 220, 220)
+        Note over Client,DB: 2. Approve & Execute Transfer
+        Client->>TransferController: PUT /api/transfers/{id}
+        Note over Client: Update status: RECEIVED
+
+        TransferController->>TransferService: updateTransfer(id, updated)
+        activate TransferService
+        
+        TransferService->>DB: BEGIN TRANSACTION
+        
+        Note over TransferService: Reduce from source
+        TransferService->>StockService: reduceStock(productId, fromWarehouseId, quantity)
+        activate StockService
+        StockService->>DB: UPDATE stocks SET quantity = quantity - ?<br/>WHERE product_id=? AND warehouse_id=?
+        deactivate StockService
+        
+        Note over TransferService: Add to destination
+        TransferService->>StockService: addStock(productId, toWarehouseId, quantity)
+        activate StockService
+        StockService->>DB: UPDATE/INSERT stocks<br/>SET quantity = quantity + ?
+        deactivate StockService
+        
+        TransferService->>TransferRepo: save(updated)
+        TransferRepo->>DB: UPDATE transfers SET status='RECEIVED'
+        
+        TransferService->>DB: COMMIT TRANSACTION
+        DB-->>TransferService: Transfer (RECEIVED)
+        deactivate TransferService
+        
+        TransferService-->>Client: 200 OK
+    end
+```
+
+### Advanced Query Flow (Low Stock Alert)
+
+```mermaid
+sequenceDiagram
+    participant Client
+    participant StockController
+    participant StockService
+    participant StockRepo as StockRepository
+    participant ProductRepo as ProductRepository
+    participant DB as MySQL Database
+
+    Client->>StockController: GET /api/stocks/low-stock
+
+    StockController->>StockService: getLowStockItems()
+    activate StockService
+
+    StockService->>StockRepo: findLowStockItems()
+    activate StockRepo
+
+    StockRepo->>DB: SELECT s.*, p.* FROM stocks s<br/>JOIN products p ON s.product_id = p.id<br/>WHERE s.quantity <= p.reorder_level
+    activate DB
+    Note over DB: Complex JOIN query<br/>comparing stock vs reorder level
+    DB-->>StockRepo: List<Stock> with Product details
+    deactivate DB
+
+    StockRepo-->>StockService: List<Stock>
+    deactivate StockRepo
+
+    StockService-->>StockController: List<Stock>
+    deactivate StockService
+
+    StockController-->>Client: 200 OK + Low Stock Items
+    Note over Client: Alert: Products need reordering
+```
+
+### Application Startup Sequence
+
+```mermaid
+sequenceDiagram
+    participant Main as Application.java
+    participant Spring as Spring Boot
+    participant JPA as JPA/Hibernate
+    participant DB as MySQL Database
+
+    Main->>Spring: SpringApplication.run()
+    activate Spring
+
+    Spring->>Spring: Component Scanning
+    Note over Spring: Scan packages:<br/>- com.inventory.product<br/>- com.inventory.warehouse<br/>- com.inventory.stock<br/>- com.inventory.supplier<br/>- com.inventory.purchase<br/>- com.inventory.sale<br/>- com.inventory.transfer
+
+    Spring->>Spring: Initialize Beans
+    Note over Spring: - Controllers (7)<br/>- Services (7)<br/>- Repositories (7)
+
+    Spring->>JPA: Initialize JPA
+    activate JPA
+
+    JPA->>DB: Connect to Database
+    activate DB
+    DB-->>JPA: Connection Established
+    
+    JPA->>DB: Validate/Update Schema
+    Note over DB: ddl-auto=update<br/>Create/Update Tables:<br/>products, warehouses, stocks,<br/>suppliers, purchases, sales, transfers
+
+    DB-->>JPA: Schema Ready
+    deactivate DB
+    deactivate JPA
+
+    Spring-->>Main: Application Started
+    deactivate Spring
+    Note over Main: Server running on port 8080
+```
+
+### Complete CRUD Operations Flow
+
+```mermaid
+sequenceDiagram
+    participant Client
+    participant Controller
+    participant Service
+    participant Repository
+    participant DB
+
+    rect rgb(200, 220, 250)
+        Note over Client,DB: CREATE Operation
+        Client->>Controller: POST /api/{entity}
+        Controller->>Service: create{Entity}(entity)
+        Service->>Repository: save(entity)
+        Repository->>DB: INSERT
+        DB-->>Client: 201 Created
+    end
+
+    rect rgb(220, 250, 220)
+        Note over Client,DB: READ Operation
+        Client->>Controller: GET /api/{entity}/{id}
+        Controller->>Service: get{Entity}(id)
+        Service->>Repository: findById(id)
+        Repository->>DB: SELECT
+        DB-->>Client: 200 OK + Data
+    end
+
+    rect rgb(250, 240, 200)
+        Note over Client,DB: UPDATE Operation
+        Client->>Controller: PUT /api/{entity}/{id}
+        Controller->>Service: update{Entity}(id, updated)
+        Service->>Repository: save(updated)
+        Repository->>DB: UPDATE
+        DB-->>Client: 200 OK + Updated Data
+    end
+
+    rect rgb(250, 220, 220)
+        Note over Client,DB: DELETE Operation
+        Client->>Controller: DELETE /api/{entity}/{id}
+        Controller->>Service: delete{Entity}(id)
+        Service->>Repository: deleteById(id)
+        Repository->>DB: DELETE
+        DB-->>Client: 200 OK + Message
+    end
+```
+
+### Error Handling Flow (Product Not Found)
+
+```mermaid
+sequenceDiagram
+    participant Client
+    participant Controller
+    participant Service
+    participant Repository
+    participant DB
+
+    Client->>Controller: GET /api/products/999
+    Controller->>Service: getProduct(999)
+    activate Service
+
+    Service->>Repository: findById(999)
+    activate Repository
+
+    Repository->>DB: SELECT * FROM products WHERE id=999
+    activate DB
+    DB-->>Repository: Empty Result
+    deactivate DB
+
+    Repository-->>Service: Optional.empty()
+    deactivate Repository
+
+    Service->>Service: Handle Not Found
+    Service-->>Controller: throw Exception / null
+    deactivate Service
+
+    Controller-->>Client: 404 Not Found
+    Note over Client: Error: Product not found
+```
+
+**Key Components:**
+- **Controller Layer**: Handles HTTP requests/responses, validates input, manages REST endpoints
+- **Service Layer**: Contains business logic, transaction management, orchestrates operations
+- **Repository Layer**: Data access abstraction using Spring Data JPA with custom queries
+- **Database**: MySQL persistence with complex relationships and constraints
+- **Transaction Management**: Ensures data consistency for multi-step operations (transfers, sales)
+- **Stock Management**: Real-time inventory tracking with automatic updates on purchases/sales
+
+**Special Features:**
+- **Multi-Warehouse Support**: Stock tracking across different warehouse locations
+- **Transaction Safety**: ACID compliance for critical operations like transfers
+- **Advanced Queries**: Custom repository methods for low stock alerts, expiry tracking
+- **Status Workflows**: State management for purchases, sales, and transfers
+- **Automatic Timestamps**: `@PrePersist` and `@PreUpdate` lifecycle callbacks
+
+---
+
+## �📄 License
 
 This project is licensed under the **MIT License**:
 

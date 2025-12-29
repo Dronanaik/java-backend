@@ -347,6 +347,243 @@ Customer (1) ──────< (N) Contact
 
 ---
 
+## 📊 Sequence Diagram
+
+The following sequence diagrams illustrate the request flow through the application layers:
+
+### CRUD Operation Flow (Example: Create Customer)
+
+```mermaid
+sequenceDiagram
+    participant Client
+    participant Controller as CustomerController
+    participant Service as CustomerService
+    participant Repository as CustomerRepository
+    participant DB as MySQL Database
+
+    Client->>Controller: POST /api/customers
+    Note over Client,Controller: Request Body: Customer JSON
+    
+    Controller->>Service: createCustomer(customer)
+    activate Service
+    
+    Service->>Repository: save(customer)
+    activate Repository
+    
+    Repository->>DB: INSERT INTO customer
+    activate DB
+    DB-->>Repository: Customer Entity (with ID)
+    deactivate DB
+    
+    Repository-->>Service: Customer Entity
+    deactivate Repository
+    
+    Service-->>Controller: Customer Entity
+    deactivate Service
+    
+    Controller-->>Client: 200 OK + Customer JSON
+    Note over Controller,Client: Response: Created Customer
+```
+
+### GET Operation with Relationships
+
+```mermaid
+sequenceDiagram
+    participant Client
+    participant Controller as CustomerController
+    participant Service as CustomerService
+    participant Repository as CustomerRepository
+    participant DB as MySQL Database
+
+    Client->>Controller: GET /api/customers/{id}
+    
+    Controller->>Service: getCustomer(id)
+    activate Service
+    
+    Service->>Repository: findById(id)
+    activate Repository
+    
+    Repository->>DB: SELECT * FROM customer WHERE id=?
+    activate DB
+    Note over DB: Fetch Customer with<br/>Contacts & Deals (Lazy/Eager)
+    DB-->>Repository: Customer + Related Entities
+    deactivate DB
+    
+    Repository-->>Service: Optional<Customer>
+    deactivate Repository
+    
+    Service-->>Controller: Customer Entity
+    deactivate Service
+    
+    Controller-->>Client: 200 OK + Customer JSON
+    Note over Controller,Client: Includes nested Contacts & Deals
+```
+
+### Complete CRUD Operations Flow
+
+```mermaid
+sequenceDiagram
+    participant Client
+    participant Controller
+    participant Service
+    participant Repository
+    participant DB
+
+    rect rgb(200, 220, 250)
+        Note over Client,DB: CREATE Operation
+        Client->>Controller: POST /api/{entity}
+        Controller->>Service: create{Entity}(entity)
+        Service->>Repository: save(entity)
+        Repository->>DB: INSERT
+        DB-->>Client: 201 Created
+    end
+
+    rect rgb(220, 250, 220)
+        Note over Client,DB: READ Operation
+        Client->>Controller: GET /api/{entity}/{id}
+        Controller->>Service: get{Entity}(id)
+        Service->>Repository: findById(id)
+        Repository->>DB: SELECT
+        DB-->>Client: 200 OK + Data
+    end
+
+    rect rgb(250, 240, 200)
+        Note over Client,DB: UPDATE Operation
+        Client->>Controller: PUT /api/{entity}/{id}
+        Controller->>Service: update{Entity}(id, updated)
+        Service->>Repository: save(updated)
+        Repository->>DB: UPDATE
+        DB-->>Client: 200 OK + Updated Data
+    end
+
+    rect rgb(250, 220, 220)
+        Note over Client,DB: DELETE Operation
+        Client->>Controller: DELETE /api/{entity}/{id}
+        Controller->>Service: delete{Entity}(id)
+        Service->>Repository: deleteById(id)
+        Repository->>DB: DELETE (CASCADE)
+        DB-->>Client: 200 OK + Message
+    end
+```
+
+### Entity Relationship Flow (Customer with Contacts)
+
+```mermaid
+sequenceDiagram
+    participant Client
+    participant CustomerController
+    participant CustomerService
+    participant CustomerRepo as CustomerRepository
+    participant ContactRepo as ContactRepository
+    participant DB as MySQL Database
+
+    Client->>CustomerController: POST /api/customers
+    Note over Client: Customer with nested Contacts
+
+    CustomerController->>CustomerService: createCustomer(customer)
+    activate CustomerService
+
+    CustomerService->>CustomerRepo: save(customer)
+    activate CustomerRepo
+
+    CustomerRepo->>DB: BEGIN TRANSACTION
+    CustomerRepo->>DB: INSERT INTO customer
+    
+    Note over DB: Cascade Operation
+    loop For each Contact
+        CustomerRepo->>DB: INSERT INTO contact<br/>(customer_id = FK)
+    end
+    
+    CustomerRepo->>DB: COMMIT TRANSACTION
+    DB-->>CustomerRepo: Customer + Contacts
+    deactivate CustomerRepo
+
+    CustomerRepo-->>CustomerService: Persisted Customer
+    deactivate CustomerService
+
+    CustomerService-->>CustomerController: Customer Entity
+    CustomerController-->>Client: 201 Created
+```
+
+### Application Startup Sequence
+
+```mermaid
+sequenceDiagram
+    participant Main as Application.java
+    participant Spring as Spring Boot
+    participant JPA as JPA/Hibernate
+    participant DB as MySQL Database
+
+    Main->>Spring: SpringApplication.run()
+    activate Spring
+
+    Spring->>Spring: Component Scanning
+    Note over Spring: Scan packages:<br/>- com.application<br/>- com.customer<br/>- com.contact<br/>- com.deal<br/>- com.lead<br/>- com.note<br/>- com.company
+
+    Spring->>Spring: Initialize Beans
+    Note over Spring: - Controllers<br/>- Services<br/>- Repositories
+
+    Spring->>JPA: Initialize JPA
+    activate JPA
+
+    JPA->>DB: Connect to Database
+    activate DB
+    DB-->>JPA: Connection Established
+    
+    JPA->>DB: Validate/Update Schema
+    Note over DB: ddl-auto=update<br/>Create/Update Tables
+
+    DB-->>JPA: Schema Ready
+    deactivate DB
+    deactivate JPA
+
+    Spring-->>Main: Application Started
+    deactivate Spring
+    Note over Main: Server running on port 8080
+```
+
+### Error Handling Flow
+
+```mermaid
+sequenceDiagram
+    participant Client
+    participant Controller
+    participant Service
+    participant Repository
+    participant DB
+
+    Client->>Controller: GET /api/customers/999
+    Controller->>Service: getCustomer(999)
+    activate Service
+
+    Service->>Repository: findById(999)
+    activate Repository
+
+    Repository->>DB: SELECT * FROM customer WHERE id=999
+    activate DB
+    DB-->>Repository: Empty Result
+    deactivate DB
+
+    Repository-->>Service: Optional.empty()
+    deactivate Repository
+
+    Service->>Service: Handle Not Found
+    Service-->>Controller: throw Exception / null
+    deactivate Service
+
+    Controller-->>Client: 404 Not Found
+    Note over Client: Error Response
+```
+
+**Key Components:**
+- **Controller Layer**: Handles HTTP requests/responses, validates input
+- **Service Layer**: Contains business logic, transaction management
+- **Repository Layer**: Data access abstraction using Spring Data JPA
+- **Database**: MySQL persistence with automatic schema management
+- **Cascade Operations**: Automatic persistence of related entities (One-to-Many)
+
+---
+
 ## 🤝 Contributing
 
 Contributions are welcome! Please feel free to submit a Pull Request.
