@@ -452,51 +452,28 @@ sequenceDiagram
 ```mermaid
 sequenceDiagram
     participant Client
-    participant SaleController
-    participant SaleService
-    participant SaleRepo as SaleRepository
-    participant StockService
-    participant StockRepo as StockRepository
-    participant DB as MySQL Database
+    participant API as Sale API
+    participant Service as Business Logic
+    participant DB as Database
 
-    Client->>SaleController: POST /api/sales
-    Note over Client: Sale Order with<br/>Product, Quantity, Customer
-
-    SaleController->>SaleService: createSale(sale)
-    activate SaleService
-
-    SaleService->>StockService: checkAvailability(productId, warehouseId, quantity)
-    activate StockService
-    StockService->>StockRepo: findByProductAndWarehouse(productId, warehouseId)
-    StockRepo->>DB: SELECT * FROM stocks WHERE...
-    DB-->>StockRepo: Stock Entity
-    StockRepo-->>StockService: Stock Entity
-    StockService-->>SaleService: Stock availability result
-    deactivate StockService
+    Client->>API: POST /api/sales
+    API->>Service: Process Sale Order
+    activate Service
+    
+    Service->>DB: Check Stock Availability
+    DB-->>Service: Stock Status
     
     alt Stock Available
-        SaleService->>SaleRepo: save(sale)
-        activate SaleRepo
-        SaleRepo->>DB: INSERT INTO sales
-        DB-->>SaleRepo: Sale Entity
-        SaleRepo-->>SaleService: Sale Entity
-        deactivate SaleRepo
-        
-        SaleService->>StockService: reduceStock(productId, warehouseId, quantity)
-        activate StockService
-        StockService->>DB: UPDATE stocks SET quantity = quantity - ?
-        DB-->>StockService: Updated
-        StockService-->>SaleService: Success
-        deactivate StockService
-        
-        SaleService-->>SaleController: Sale Entity
-        SaleController-->>Client: 201 Created
-        deactivate SaleService
+        Service->>DB: Create Sale Record
+        Service->>DB: Reduce Stock Quantity
+        DB-->>Service: Success
+        Service-->>API: Sale Created
+        API-->>Client: 201 Created
     else Insufficient Stock
-        SaleService-->>SaleController: Error: Insufficient Stock
-        SaleController-->>Client: 400 Bad Request
-        deactivate SaleService
+        Service-->>API: Stock Unavailable
+        API-->>Client: 400 Bad Request
     end
+    deactivate Service
 ```
 
 ### Inter-Warehouse Transfer Flow
@@ -506,88 +483,52 @@ sequenceDiagram
 ```mermaid
 sequenceDiagram
     participant Client
-    participant TransferController
-    participant TransferService
-    participant TransferRepo as TransferRepository
-    participant StockService
-    participant DB as MySQL Database
+    participant API as Transfer API
+    participant Service as Business Logic
+    participant DB as Database
 
-    Client->>TransferController: POST /api/transfers
-    Note over Client: Transfer Request: From Warehouse A to B
-
-    TransferController->>TransferService: createTransfer(transfer)
-    activate TransferService
+    Client->>API: POST /api/transfers
+    API->>Service: Create Transfer Request
+    activate Service
     
-    TransferService->>StockService: checkStock(productId, fromWarehouseId, quantity)
-    activate StockService
-    StockService->>DB: SELECT quantity FROM stocks
-    DB-->>StockService: Available Quantity
-    StockService-->>TransferService: Stock check result
-    deactivate StockService
+    Service->>DB: Check Stock in Source Warehouse
+    DB-->>Service: Stock Status
     
     alt Stock Available
-        TransferService->>TransferRepo: save(transfer)
-        activate TransferRepo
-        TransferRepo->>DB: INSERT INTO transfers (status='PENDING')
-        DB-->>TransferRepo: Transfer (PENDING)
-        TransferRepo-->>TransferService: Transfer (PENDING)
-        deactivate TransferRepo
-        TransferService-->>TransferController: Transfer Entity
-        TransferController-->>Client: 201 Created
-        deactivate TransferService
+        Service->>DB: Save Transfer (Status: PENDING)
+        DB-->>Service: Transfer Created
+        Service-->>API: Transfer Entity
+        API-->>Client: 201 Created
     else Insufficient Stock
-        TransferService-->>TransferController: Error: Insufficient Stock
-        TransferController-->>Client: 400 Bad Request
-        deactivate TransferService
+        Service-->>API: Stock Unavailable
+        API-->>Client: 400 Bad Request
     end
+    deactivate Service
 ```
 
-**Phase 2: Approve and Execute Transfer**
+**Phase 2: Execute Transfer**
 
 ```mermaid
 sequenceDiagram
     participant Client
-    participant TransferController
-    participant TransferService
-    participant TransferRepo as TransferRepository
-    participant StockService
-    participant DB as MySQL Database
+    participant API as Transfer API
+    participant Service as Business Logic
+    participant DB as Database
 
-    Client->>TransferController: PUT /api/transfers/{id}
-    Note over Client: Update status: RECEIVED
-
-    TransferController->>TransferService: updateTransfer(id, updated)
-    activate TransferService
+    Client->>API: PUT /api/transfers/{id}
+    API->>Service: Execute Transfer
+    activate Service
     
-    TransferService->>DB: BEGIN TRANSACTION
+    Service->>DB: BEGIN TRANSACTION
+    Service->>DB: Reduce Stock from Source
+    Service->>DB: Add Stock to Destination
+    Service->>DB: Update Transfer Status (RECEIVED)
+    Service->>DB: COMMIT TRANSACTION
+    DB-->>Service: Success
     
-    TransferService->>StockService: reduceStock(productId, fromWarehouseId, quantity)
-    activate StockService
-    StockService->>DB: UPDATE stocks (reduce from source)
-    DB-->>StockService: Updated
-    StockService-->>TransferService: Success
-    deactivate StockService
-    
-    TransferService->>StockService: addStock(productId, toWarehouseId, quantity)
-    activate StockService
-    StockService->>DB: UPDATE/INSERT stocks (add to destination)
-    DB-->>StockService: Updated
-    StockService-->>TransferService: Success
-    deactivate StockService
-    
-    TransferService->>TransferRepo: save(updated)
-    activate TransferRepo
-    TransferRepo->>DB: UPDATE transfers SET status='RECEIVED'
-    DB-->>TransferRepo: Updated Transfer
-    TransferRepo-->>TransferService: Transfer (RECEIVED)
-    deactivate TransferRepo
-    
-    TransferService->>DB: COMMIT TRANSACTION
-    DB-->>TransferService: Transaction Complete
-    
-    TransferService-->>TransferController: Transfer Entity
-    TransferController-->>Client: 200 OK
-    deactivate TransferService
+    Service-->>API: Transfer Completed
+    API-->>Client: 200 OK
+    deactivate Service
 ```
 
 
