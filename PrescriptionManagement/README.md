@@ -342,6 +342,348 @@ Drug (1) ────< (N) DrugInteraction >──── (1) Drug
 
 ---
 
+## 📊 Sequence Diagrams
+
+The following sequence diagrams illustrate the request flow through the application layers for the 5 key prescription management features:
+
+### Feature 1 & 2: Prescription Validation (Drug Interaction + Allergy Check)
+
+```mermaid
+sequenceDiagram
+    participant Client
+    participant PrescriptionController
+    participant PrescriptionService
+    participant AllergyService
+    participant InteractionService
+    participant DB as MySQL Database
+
+    Client->>PrescriptionController: POST /api/prescriptions/validate<br/>?patientId=1&drugId=5
+    activate PrescriptionController
+
+    PrescriptionController->>PrescriptionService: validatePrescription(patientId, drugId)
+    activate PrescriptionService
+
+    Note over PrescriptionService: Fetch Patient & Drug entities
+
+    rect rgb(255, 220, 220)
+        Note over PrescriptionService,DB: Step 1: Allergy Validation
+        PrescriptionService->>AllergyService: checkAllergyConflict(patientId, drugName)
+        activate AllergyService
+        AllergyService->>DB: SELECT * FROM allergies<br/>WHERE patient_id = ?
+        DB-->>AllergyService: Patient Allergies
+        
+        alt Allergy Found
+            AllergyService-->>PrescriptionService: true (Conflict!)
+            Note over PrescriptionService: Add warning:<br/>"⚠️ ALLERGY ALERT"
+        else No Allergy
+            AllergyService-->>PrescriptionService: false (Safe)
+        end
+        deactivate AllergyService
+    end
+
+    rect rgb(220, 220, 255)
+        Note over PrescriptionService,DB: Step 2: Drug Interaction Check
+        PrescriptionService->>DB: Get active prescriptions for patient
+        DB-->>PrescriptionService: List<Prescription>
+        
+        loop For each active prescription
+            PrescriptionService->>InteractionService: findInteractionsBetweenDrugs(drugId1, drugId2)
+            activate InteractionService
+            InteractionService->>DB: SELECT * FROM drug_interactions<br/>WHERE (drug1_id=? AND drug2_id=?)<br/>OR (drug1_id=? AND drug2_id=?)
+            DB-->>InteractionService: DrugInteraction records
+            
+            alt Interaction Found
+                InteractionService-->>PrescriptionService: List<DrugInteraction>
+                Note over PrescriptionService: Add warning:<br/>"⚠️ DRUG INTERACTION:<br/>Severity: MAJOR"
+                
+                alt Severity = CONTRAINDICATED
+                    Note over PrescriptionService: Set isValid = false
+                end
+            else No Interaction
+                InteractionService-->>PrescriptionService: Empty List
+            end
+            deactivate InteractionService
+        end
+    end
+
+    PrescriptionService-->>PrescriptionController: ValidationResult<br/>{isValid, warnings, patient, drug}
+    deactivate PrescriptionService
+
+    PrescriptionController-->>Client: 200 OK + Validation JSON
+    deactivate PrescriptionController
+```
+
+### Feature 3: Dosage Calculation (Age & Weight Based)
+
+```mermaid
+sequenceDiagram
+    participant Client
+    participant PrescriptionController
+    participant PrescriptionService
+    participant PatientService
+    participant DrugService
+    participant DB as MySQL Database
+
+    Client->>PrescriptionController: POST /api/prescriptions/calculate-dosage<br/>?patientId=1&drugId=5&baseDosage=500mg
+    activate PrescriptionController
+
+    PrescriptionController->>PrescriptionService: calculateDosage(patientId, drugId, "500mg")
+    activate PrescriptionService
+
+    PrescriptionService->>PatientService: getPatientById(patientId)
+    activate PatientService
+    PatientService->>DB: SELECT * FROM patients WHERE id = ?
+    DB-->>PatientService: Patient(age=8, weight=30kg)
+    PatientService-->>PrescriptionService: Patient Entity
+    deactivate PatientService
+
+    PrescriptionService->>DrugService: getDrugById(drugId)
+    activate DrugService
+    DrugService->>DB: SELECT * FROM drugs WHERE id = ?
+    DB-->>DrugService: Drug Entity
+    DrugService-->>PrescriptionService: Drug Entity
+    deactivate DrugService
+
+    Note over PrescriptionService: Parse baseDosage:<br/>Extract "500" and "mg"
+
+    rect rgb(220, 255, 220)
+        Note over PrescriptionService: Dosage Calculation Logic
+        
+        alt Age < 12 (Pediatric)
+            Note over PrescriptionService: Reduce by 50%<br/>500mg → 250mg
+        else Age > 65 (Geriatric)
+            Note over PrescriptionService: Reduce by 25%<br/>500mg → 375mg
+        else Adult (12-65)
+            Note over PrescriptionService: Keep base dosage
+        end
+
+        alt Weight significantly different from 70kg
+            Note over PrescriptionService: Weight adjustment:<br/>dosage × (weight/70)<br/>250mg × (30/70) = 107mg
+        end
+
+        Note over PrescriptionService: Final: 107mg<br/>(Calculated for age: 8, weight: 30.0kg)
+    end
+
+    PrescriptionService-->>PrescriptionController: "107mg (Calculated for age: 8, weight: 30.0kg)"
+    deactivate PrescriptionService
+
+    PrescriptionController-->>Client: 200 OK + Calculated Dosage
+    deactivate PrescriptionController
+```
+
+### Feature 4: Refill Authorization
+
+```mermaid
+sequenceDiagram
+    participant Client
+    participant PrescriptionController
+    participant PrescriptionService
+    participant DB as MySQL Database
+
+    Client->>PrescriptionController: POST /api/prescriptions/123/refill
+    activate PrescriptionController
+
+    PrescriptionController->>PrescriptionService: authorizeRefill(123)
+    activate PrescriptionService
+
+    PrescriptionService->>DB: SELECT * FROM prescriptions WHERE id = 123
+    DB-->>PrescriptionService: Prescription Entity
+
+    rect rgb(255, 240, 220)
+        Note over PrescriptionService: Validation Checks
+
+        alt Status != ACTIVE
+            PrescriptionService-->>Client: ❌ Error: Prescription not active
+        else Expiry Date < Today
+            PrescriptionService-->>Client: ❌ Error: Prescription expired
+        else Refills Remaining <= 0
+            PrescriptionService-->>Client: ❌ Error: No refills remaining
+        else All Checks Pass
+            Note over PrescriptionService: ✅ Authorization Approved
+            
+            Note over PrescriptionService: refillsRemaining--<br/>Add refill log to notes
+            
+            PrescriptionService->>DB: UPDATE prescriptions SET<br/>refills_remaining = refills_remaining - 1,<br/>notes = notes + '[Refill authorized on 2025-12-29]'<br/>WHERE id = 123
+            DB-->>PrescriptionService: Updated Prescription
+            
+            PrescriptionService-->>PrescriptionController: Updated Prescription Entity
+            deactivate PrescriptionService
+            
+            PrescriptionController-->>Client: 200 OK + Updated Prescription
+        end
+    end
+    deactivate PrescriptionController
+```
+
+### Feature 5: Expiry Tracking
+
+```mermaid
+sequenceDiagram
+    participant Client
+    participant PrescriptionController
+    participant PrescriptionService
+    participant DB as MySQL Database
+
+    Client->>PrescriptionController: GET /api/prescriptions/patient/1/expiring?daysAhead=30
+    activate PrescriptionController
+
+    PrescriptionController->>PrescriptionService: checkExpiringPrescriptions(patientId=1, daysAhead=30)
+    activate PrescriptionService
+
+    Note over PrescriptionService: Calculate date range:<br/>today = 2025-12-29<br/>futureDate = 2026-01-28
+
+    PrescriptionService->>DB: SELECT * FROM prescriptions<br/>WHERE patient_id = 1<br/>AND status = 'ACTIVE'
+    DB-->>PrescriptionService: List<Prescription>
+
+    loop For each active prescription
+        alt expiryDate between today and futureDate
+            Note over PrescriptionService: Add to expiring list<br/>⚠️ Expires in X days
+        else expiryDate outside range
+            Note over PrescriptionService: Skip (not expiring soon)
+        end
+    end
+
+    PrescriptionService-->>PrescriptionController: List<Prescription> (Expiring)
+    deactivate PrescriptionService
+
+    PrescriptionController-->>Client: 200 OK + Expiring Prescriptions
+    deactivate PrescriptionController
+
+    Note over Client: Display alerts:<br/>"⚠️ 3 prescriptions expiring<br/>in the next 30 days"
+```
+
+### Complete Prescription Creation Flow (All Features Combined)
+
+```mermaid
+sequenceDiagram
+    participant Client
+    participant API as Prescription API
+    participant Service as Business Logic
+    participant Validation as Validation Services
+    participant DB as Database
+
+    Client->>API: POST /api/prescriptions<br/>{patient, drug, dosage, ...}
+    API->>Service: createPrescription(prescription)
+    activate Service
+
+    rect rgb(255, 230, 230)
+        Note over Service,Validation: Automatic Validation
+        Service->>Validation: validatePrescription(patientId, drugId)
+        activate Validation
+        
+        Validation->>DB: Check Allergies
+        Validation->>DB: Check Drug Interactions
+        
+        alt Validation Failed
+            Validation-->>Service: {isValid: false, warnings: [...]}
+            Service-->>API: ❌ RuntimeException
+            API-->>Client: 400 Bad Request<br/>"Prescription validation failed"
+        else Validation Passed
+            Validation-->>Service: {isValid: true, warnings: []}
+            deactivate Validation
+            
+            Service->>DB: INSERT INTO prescriptions
+            Note over DB: Auto-set:<br/>- expiryDate = today + 1 year<br/>- createdAt = now<br/>- status = ACTIVE
+            
+            DB-->>Service: Prescription Created
+            Service-->>API: Prescription Entity
+            API-->>Client: 201 Created + Prescription
+        end
+    end
+    deactivate Service
+```
+
+### Application Startup Sequence
+
+```mermaid
+sequenceDiagram
+    participant Main as Application.java
+    participant Spring as Spring Boot
+    participant JPA as JPA/Hibernate
+    participant DB as MySQL Database
+
+    Main->>Spring: SpringApplication.run()
+    activate Spring
+
+    Spring->>Spring: Component Scanning
+    Note over Spring: Scan packages:<br/>- com.prescription.patient<br/>- com.prescription.drug<br/>- com.prescription.allergy<br/>- com.prescription.interaction<br/>- com.prescription.prescription
+
+    Spring->>Spring: Initialize Beans
+    Note over Spring: - Controllers (5)<br/>- Services (5)<br/>- Repositories (5)
+
+    Spring->>JPA: Initialize JPA
+    activate JPA
+
+    JPA->>DB: Connect to prescription_db
+    activate DB
+    DB-->>JPA: Connection Established
+    
+    JPA->>DB: Validate/Update Schema
+    Note over DB: ddl-auto=update<br/>Create/Update Tables:<br/>patients, drugs, allergies,<br/>prescriptions, drug_interactions
+
+    DB-->>JPA: Schema Ready
+    deactivate DB
+    deactivate JPA
+
+    Spring-->>Main: Application Started ✅
+    deactivate Spring
+    Note over Main: Server running on port 8080<br/>"✅ Prescription Management<br/>System Started Successfully!"
+```
+
+### Error Handling Flow (Allergy Conflict Example)
+
+```mermaid
+sequenceDiagram
+    participant Client
+    participant Controller
+    participant Service
+    participant AllergyService
+    participant DB
+
+    Client->>Controller: POST /api/prescriptions<br/>{patient: allergic to Penicillin,<br/>drug: Amoxicillin (Penicillin-based)}
+    Controller->>Service: createPrescription(prescription)
+    activate Service
+
+    Service->>Service: validatePrescription(patientId, drugId)
+    Service->>AllergyService: checkAllergyConflict(patientId, "Amoxicillin")
+    activate AllergyService
+
+    AllergyService->>DB: SELECT * FROM allergies<br/>WHERE patient_id = ?
+    DB-->>AllergyService: Allergy{allergen: "Penicillin", severity: SEVERE}
+
+    Note over AllergyService: Match found!<br/>"Amoxicillin" contains "Penicillin"
+
+    AllergyService-->>Service: true (Conflict!)
+    deactivate AllergyService
+
+    Note over Service: Add to warnings:<br/>"⚠️ ALLERGY ALERT:<br/>Patient is allergic to Amoxicillin"<br/>Set isValid = false
+
+    Service->>Service: throw RuntimeException<br/>"Prescription validation failed"
+    Service-->>Controller: Exception
+    deactivate Service
+
+    Controller-->>Client: 400 Bad Request<br/>{"error": "Prescription validation failed",<br/>"warnings": ["⚠️ ALLERGY ALERT: ..."]}
+    
+    Note over Client: Display error to user:<br/>❌ Cannot prescribe<br/>Patient has severe allergy
+```
+
+**Key Components:**
+- **Controller Layer**: Handles HTTP requests/responses, validates input, manages REST endpoints
+- **Service Layer**: Contains business logic for all 5 features, transaction management, orchestrates operations
+- **Repository Layer**: Data access abstraction using Spring Data JPA with custom queries
+- **Database**: MySQL persistence with complex relationships and constraints
+- **Validation Services**: Specialized services for allergy checking and drug interaction detection
+- **Safety Features**: Multi-layer validation before prescription creation
+
+**Special Features:**
+- **Automatic Validation**: Every prescription creation triggers allergy and interaction checks
+- **Intelligent Calculations**: Age and weight-based dosage adjustments
+- **Refill Workflow**: Multi-step validation before authorizing refills
+- **Expiry Alerts**: Proactive tracking of expiring prescriptions
+- **Error Handling**: Comprehensive validation with detailed error messages
+
+---
+
 ## 📄 License
 
 This project is licensed under the **MIT License**:
