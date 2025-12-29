@@ -470,11 +470,10 @@ sequenceDiagram
     StockService->>StockRepo: findByProductAndWarehouse(productId, warehouseId)
     StockRepo->>DB: SELECT * FROM stocks WHERE...
     DB-->>StockService: Stock Entity
+    StockService-->>SaleService: Stock availability result
+    deactivate StockService
     
     alt Stock Available
-        StockService-->>SaleService: true
-        deactivate StockService
-        
         SaleService->>SaleRepo: save(sale)
         SaleRepo->>DB: INSERT INTO sales
         DB-->>SaleService: Sale Entity
@@ -482,14 +481,13 @@ sequenceDiagram
         SaleService->>StockService: reduceStock(productId, warehouseId, quantity)
         activate StockService
         StockService->>DB: UPDATE stocks SET quantity = quantity - ?
+        DB-->>StockService: Updated
         deactivate StockService
         
         SaleService-->>SaleController: Sale Entity
         deactivate SaleService
         SaleController-->>Client: 201 Created
     else Insufficient Stock
-        StockService-->>SaleService: false (Insufficient Stock)
-        deactivate StockService
         SaleService-->>SaleController: Error: Insufficient Stock
         deactivate SaleService
         SaleController-->>Client: 400 Bad Request
@@ -519,19 +517,16 @@ sequenceDiagram
         activate StockService
         StockService->>DB: SELECT quantity FROM stocks
         DB-->>StockService: Available Quantity
+        StockService-->>TransferService: Stock check result
+        deactivate StockService
         
         alt Stock Available
-            StockService-->>TransferService: true
-            deactivate StockService
-            
             TransferService->>TransferRepo: save(transfer)
             TransferRepo->>DB: INSERT INTO transfers<br/>status='PENDING'
             DB-->>TransferService: Transfer (PENDING)
             deactivate TransferService
             TransferService-->>Client: 201 Created
         else Insufficient Stock
-            StockService-->>TransferService: false
-            deactivate StockService
             deactivate TransferService
             TransferService-->>Client: 400 Bad Request
         end
@@ -551,12 +546,14 @@ sequenceDiagram
         TransferService->>StockService: reduceStock(productId, fromWarehouseId, quantity)
         activate StockService
         StockService->>DB: UPDATE stocks SET quantity = quantity - ?<br/>WHERE product_id=? AND warehouse_id=?
+        DB-->>StockService: Updated
         deactivate StockService
         
         Note over TransferService: Add to destination
         TransferService->>StockService: addStock(productId, toWarehouseId, quantity)
         activate StockService
         StockService->>DB: UPDATE/INSERT stocks<br/>SET quantity = quantity + ?
+        DB-->>StockService: Updated
         deactivate StockService
         
         TransferService->>TransferRepo: save(updated)
@@ -569,6 +566,7 @@ sequenceDiagram
         TransferService-->>Client: 200 OK
     end
 ```
+
 
 ### Advanced Query Flow (Low Stock Alert)
 
