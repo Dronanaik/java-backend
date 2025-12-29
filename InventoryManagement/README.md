@@ -524,11 +524,11 @@ sequenceDiagram
             TransferService->>TransferRepo: save(transfer)
             TransferRepo->>DB: INSERT INTO transfers<br/>status='PENDING'
             DB-->>TransferService: Transfer (PENDING)
-            deactivate TransferService
             TransferService-->>Client: 201 Created
-        else Insufficient Stock
             deactivate TransferService
+        else Insufficient Stock
             TransferService-->>Client: 400 Bad Request
+            deactivate TransferService
         end
     end
 
