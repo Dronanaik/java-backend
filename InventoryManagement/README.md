@@ -469,28 +469,33 @@ sequenceDiagram
     activate StockService
     StockService->>StockRepo: findByProductAndWarehouse(productId, warehouseId)
     StockRepo->>DB: SELECT * FROM stocks WHERE...
-    DB-->>StockService: Stock Entity
+    DB-->>StockRepo: Stock Entity
+    StockRepo-->>StockService: Stock Entity
     StockService-->>SaleService: Stock availability result
     deactivate StockService
     
     alt Stock Available
         SaleService->>SaleRepo: save(sale)
+        activate SaleRepo
         SaleRepo->>DB: INSERT INTO sales
-        DB-->>SaleService: Sale Entity
+        DB-->>SaleRepo: Sale Entity
+        SaleRepo-->>SaleService: Sale Entity
+        deactivate SaleRepo
         
         SaleService->>StockService: reduceStock(productId, warehouseId, quantity)
         activate StockService
         StockService->>DB: UPDATE stocks SET quantity = quantity - ?
         DB-->>StockService: Updated
+        StockService-->>SaleService: Success
         deactivate StockService
         
         SaleService-->>SaleController: Sale Entity
-        deactivate SaleService
         SaleController-->>Client: 201 Created
+        deactivate SaleService
     else Insufficient Stock
         SaleService-->>SaleController: Error: Insufficient Stock
-        deactivate SaleService
         SaleController-->>Client: 400 Bad Request
+        deactivate SaleService
     end
 ```
 
@@ -505,66 +510,74 @@ sequenceDiagram
     participant StockService
     participant DB as MySQL Database
 
-    rect rgb(250, 240, 200)
-        Note over Client,DB: 1. Initiate Transfer
-        Client->>TransferController: POST /api/transfers
-        Note over Client: Transfer Request:<br/>From Warehouse A → B<br/>Product, Quantity
+    Note over Client,DB: Phase 1 - Initiate Transfer
+    Client->>TransferController: POST /api/transfers
+    Note over Client: Transfer Request:<br/>From Warehouse A to B<br/>Product, Quantity
 
-        TransferController->>TransferService: createTransfer(transfer)
-        activate TransferService
-        
-        TransferService->>StockService: checkStock(productId, fromWarehouseId, quantity)
-        activate StockService
-        StockService->>DB: SELECT quantity FROM stocks
-        DB-->>StockService: Available Quantity
-        StockService-->>TransferService: Stock check result
-        deactivate StockService
-        
-        alt Stock Available
-            TransferService->>TransferRepo: save(transfer)
-            TransferRepo->>DB: INSERT INTO transfers<br/>status='PENDING'
-            DB-->>TransferService: Transfer (PENDING)
-            TransferService-->>Client: 201 Created
-            deactivate TransferService
-        else Insufficient Stock
-            TransferService-->>Client: 400 Bad Request
-            deactivate TransferService
-        end
-    end
-
-    rect rgb(250, 220, 220)
-        Note over Client,DB: 2. Approve & Execute Transfer
-        Client->>TransferController: PUT /api/transfers/{id}
-        Note over Client: Update status: RECEIVED
-
-        TransferController->>TransferService: updateTransfer(id, updated)
-        activate TransferService
-        
-        TransferService->>DB: BEGIN TRANSACTION
-        
-        Note over TransferService: Reduce from source
-        TransferService->>StockService: reduceStock(productId, fromWarehouseId, quantity)
-        activate StockService
-        StockService->>DB: UPDATE stocks SET quantity = quantity - ?<br/>WHERE product_id=? AND warehouse_id=?
-        DB-->>StockService: Updated
-        deactivate StockService
-        
-        Note over TransferService: Add to destination
-        TransferService->>StockService: addStock(productId, toWarehouseId, quantity)
-        activate StockService
-        StockService->>DB: UPDATE/INSERT stocks<br/>SET quantity = quantity + ?
-        DB-->>StockService: Updated
-        deactivate StockService
-        
-        TransferService->>TransferRepo: save(updated)
-        TransferRepo->>DB: UPDATE transfers SET status='RECEIVED'
-        
-        TransferService->>DB: COMMIT TRANSACTION
-        DB-->>TransferService: Transfer (RECEIVED)
+    TransferController->>TransferService: createTransfer(transfer)
+    activate TransferService
+    
+    TransferService->>StockService: checkStock(productId, fromWarehouseId, quantity)
+    activate StockService
+    StockService->>DB: SELECT quantity FROM stocks
+    DB-->>StockService: Available Quantity
+    StockService-->>TransferService: Stock check result
+    deactivate StockService
+    
+    alt Stock Available
+        TransferService->>TransferRepo: save(transfer)
+        activate TransferRepo
+        TransferRepo->>DB: INSERT INTO transfers (status='PENDING')
+        DB-->>TransferRepo: Transfer (PENDING)
+        TransferRepo-->>TransferService: Transfer (PENDING)
+        deactivate TransferRepo
+        TransferService-->>TransferController: Transfer Entity
+        TransferController-->>Client: 201 Created
         deactivate TransferService
-        
-        TransferService-->>Client: 200 OK
+    else Insufficient Stock
+        TransferService-->>TransferController: Error: Insufficient Stock
+        TransferController-->>Client: 400 Bad Request
+        deactivate TransferService
     end
+
+    Note over Client,DB: Phase 2 - Approve and Execute Transfer
+    Client->>TransferController: PUT /api/transfers/{id}
+    Note over Client: Update status: RECEIVED
+
+    TransferController->>TransferService: updateTransfer(id, updated)
+    activate TransferService
+    
+    TransferService->>DB: BEGIN TRANSACTION
+    
+    Note over TransferService,DB: Reduce from source warehouse
+    TransferService->>StockService: reduceStock(productId, fromWarehouseId, quantity)
+    activate StockService
+    StockService->>DB: UPDATE stocks SET quantity = quantity - ?
+    DB-->>StockService: Updated
+    StockService-->>TransferService: Success
+    deactivate StockService
+    
+    Note over TransferService,DB: Add to destination warehouse
+    TransferService->>StockService: addStock(productId, toWarehouseId, quantity)
+    activate StockService
+    StockService->>DB: UPDATE/INSERT stocks SET quantity = quantity + ?
+    DB-->>StockService: Updated
+    StockService-->>TransferService: Success
+    deactivate StockService
+    
+    TransferService->>TransferRepo: save(updated)
+    activate TransferRepo
+    TransferRepo->>DB: UPDATE transfers SET status='RECEIVED'
+    DB-->>TransferRepo: Updated Transfer
+    TransferRepo-->>TransferService: Transfer (RECEIVED)
+    deactivate TransferRepo
+    
+    TransferService->>DB: COMMIT TRANSACTION
+    DB-->>TransferService: Transaction Complete
+    
+    TransferService-->>TransferController: Transfer Entity
+    TransferController-->>Client: 200 OK
+    deactivate TransferService
 ```
 
 
