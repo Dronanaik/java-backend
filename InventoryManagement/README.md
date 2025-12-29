@@ -501,6 +501,8 @@ sequenceDiagram
 
 ### Inter-Warehouse Transfer Flow
 
+**Phase 1: Initiate Transfer**
+
 ```mermaid
 sequenceDiagram
     participant Client
@@ -510,9 +512,8 @@ sequenceDiagram
     participant StockService
     participant DB as MySQL Database
 
-    Note over Client,DB: Phase 1 - Initiate Transfer
     Client->>TransferController: POST /api/transfers
-    Note over Client: Transfer Request:<br/>From Warehouse A to B<br/>Product, Quantity
+    Note over Client: Transfer Request: From Warehouse A to B
 
     TransferController->>TransferService: createTransfer(transfer)
     activate TransferService
@@ -539,8 +540,19 @@ sequenceDiagram
         TransferController-->>Client: 400 Bad Request
         deactivate TransferService
     end
+```
 
-    Note over Client,DB: Phase 2 - Approve and Execute Transfer
+**Phase 2: Approve and Execute Transfer**
+
+```mermaid
+sequenceDiagram
+    participant Client
+    participant TransferController
+    participant TransferService
+    participant TransferRepo as TransferRepository
+    participant StockService
+    participant DB as MySQL Database
+
     Client->>TransferController: PUT /api/transfers/{id}
     Note over Client: Update status: RECEIVED
 
@@ -549,18 +561,16 @@ sequenceDiagram
     
     TransferService->>DB: BEGIN TRANSACTION
     
-    Note over TransferService,DB: Reduce from source warehouse
     TransferService->>StockService: reduceStock(productId, fromWarehouseId, quantity)
     activate StockService
-    StockService->>DB: UPDATE stocks SET quantity = quantity - ?
+    StockService->>DB: UPDATE stocks (reduce from source)
     DB-->>StockService: Updated
     StockService-->>TransferService: Success
     deactivate StockService
     
-    Note over TransferService,DB: Add to destination warehouse
     TransferService->>StockService: addStock(productId, toWarehouseId, quantity)
     activate StockService
-    StockService->>DB: UPDATE/INSERT stocks SET quantity = quantity + ?
+    StockService->>DB: UPDATE/INSERT stocks (add to destination)
     DB-->>StockService: Updated
     StockService-->>TransferService: Success
     deactivate StockService
@@ -579,6 +589,7 @@ sequenceDiagram
     TransferController-->>Client: 200 OK
     deactivate TransferService
 ```
+
 
 
 ### Advanced Query Flow (Low Stock Alert)
