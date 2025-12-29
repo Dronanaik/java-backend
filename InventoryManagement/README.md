@@ -485,6 +485,7 @@ sequenceDiagram
         deactivate StockService
         
         SaleService-->>SaleController: Sale Entity
+        deactivate SaleService
         SaleController-->>Client: 201 Created
     else Insufficient Stock
         StockService-->>SaleService: false (Insufficient Stock)
