@@ -123,6 +123,34 @@ This repository serves as a practical reference for:
 
 ---
 
+### 3️⃣ [Prescription Management](./PrescriptionManagement)
+
+[![Java](https://img.shields.io/badge/Java-21-orange.svg)](https://www.oracle.com/java/)
+[![Spring Boot](https://img.shields.io/badge/Spring%20Boot-4.0.1-brightgreen.svg)](https://spring.io/projects/spring-boot)
+[![MySQL](https://img.shields.io/badge/MySQL-8.0+-blue.svg)](https://www.mysql.com/)
+
+**An intelligent prescription management system with advanced safety features and automated calculations**
+
+**Key Features:**
+- ✅ Drug interaction warnings with severity levels
+- ✅ Allergy validation before prescribing
+- ✅ Automated dosage calculation (age/weight-based)
+- ✅ Refill authorization with expiry tracking
+- ✅ Prescription expiry alerts
+- ✅ Patient demographics and medical history
+- ✅ Comprehensive drug catalog
+- ✅ Safety-first design with clinical recommendations
+- ✅ Prescription lifecycle management
+- ✅ Multi-level severity tracking
+
+**Entities:** Prescription, Patient, Drug, Allergy, DrugInteraction
+
+**Tech Stack:** Java 21, Spring Boot 4.0.1, Spring Data JPA, MySQL, Maven
+
+[📖 View Project Documentation](./PrescriptionManagement/README.md)
+
+---
+
 ## 🛠️ Common Tech Stack
 
 All projects in this repository utilize modern Java backend technologies:
