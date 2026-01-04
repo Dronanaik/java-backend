@@ -151,6 +151,34 @@ This repository serves as a practical reference for:
 
 ---
 
+### 4️⃣ [Transaction Processing](./TransactionProcessing)
+
+[![Java](https://img.shields.io/badge/Java-21-orange.svg)](https://www.oracle.com/java/)
+[![Spring Boot](https://img.shields.io/badge/Spring%20Boot-4.0.1-brightgreen.svg)](https://spring.io/projects/spring-boot)
+[![MySQL](https://img.shields.io/badge/MySQL-8.0+-blue.svg)](https://www.mysql.com/)
+
+**A comprehensive banking transaction processing system with daily limits, fraud detection, and multi-currency support**
+
+**Key Features:**
+- ✅ Daily transaction limits enforcement
+- ✅ Fraud detection with configurable rules
+- ✅ Real-time currency conversion
+- ✅ Transaction reversal logic
+- ✅ Standing instructions (recurring transfers)
+- ✅ Bill payment scheduling and automation
+- ✅ Insufficient funds validation
+- ✅ Transaction fee calculation (flat/percentage/tiered)
+- ✅ Multi-currency account support
+- ✅ Automated payment processing
+
+**Entities:** Account, Transaction, FraudRule, FraudAlert, ExchangeRate, StandingInstruction, BillPayment, TransactionFeeRule
+
+**Tech Stack:** Java 21, Spring Boot 4.0.1, Spring Data JPA, MySQL, Maven
+
+[📖 View Project Documentation](./TransactionProcessing/README.md)
+
+---
+
 ## 🛠️ Common Tech Stack
 
 All projects in this repository utilize modern Java backend technologies:
